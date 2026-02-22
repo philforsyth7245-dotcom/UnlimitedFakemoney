@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Fakemoney</title>
+
+<script src="https://unpkg.com/html5-qrcode"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs/qrcode.min.js"></script>
+
+<style>
+body{margin:0;font-family:Arial;background:#fff;color:#000}
+header{padding:15px;text-align:center;font-size:22px;font-weight:bold;border-bottom:1px solid #ddd}
+.notice{text-align:center;font-size:12px;color:gray}
+.screen{display:none;padding:20px}
+.active{display:block}
+.balance{font-size:26px;margin:20px 0}
+.card{border:1px solid #000;padding:15px;border-radius:10px;margin-bottom:15px}
+button{width:100%;padding:12px;margin-top:10px;background:black;color:white;border:none;border-radius:6px}
+input{width:100%;padding:10px;margin-top:10px;border:1px solid #000;border-radius:5px}
+.bottom{position:fixed;bottom:0;width:100%;display:flex;border-top:1px solid #ddd;background:#fff}
+.bottom button{flex:1;background:white;color:black}
+#reader{width:100%;margin-top:10px}
+.msg{padding:10px;border-radius:6px;margin-top:10px;background:#e6ffe6}
+</style>
+</head>
+
+<body>
+
+<header>Fakemoney</header>
+<div class="notice">⚠️ Fake Indian demo — no real money</div>
+
+<div id="home" class="screen active">
+  <div class="balance">💰 Balance: ₹ <b id="balanceText"></b></div>
+  <div class="card">🏦 Manorangan Bank</div>
+  <div id="homeMsg"></div>
+</div>
+
+<div id="scan" class="screen">
+  <h3>📷 Scan & Pay</h3>
+  <button onclick="openCamera()">Open Camera</button>
+  <div id="reader"></div>
+
+  <div id="payBox" style="display:none">
+    <div class="card">👤 Paying to: <b id="receiverName"></b></div>
+    <input id="amount" placeholder="Amount ₹">
+    <input id="pinInput" type="password" placeholder="Enter PIN">
+    <button onclick="pay()">Pay</button>
+  </div>
+</div>
+
+<div id="earn" class="screen">
+  <h3>💸 Earn Fake Money</h3>
+  <button onclick="earn()">Earn ₹10,00,000</button>
+</div>
+
+<div id="profile" class="screen">
+  <h3>👤 Profile</h3>
+
+  <div class="card">
+    Name: <b id="userName"></b>
+    <input id="newName" placeholder="Edit name">
+    <button onclick="saveName()">Save</button>
+  </div>
+
+  <div class="card">
+    Your QR
+    <div id="myqr"></div>
+  </div>
+
+  <div class="card">
+    <input id="newPin" type="password" placeholder="Set PIN">
+    <button onclick="setPin()">Save PIN</button>
+  </div>
+</div>
+
+<div class="bottom">
+  <button onclick="show('home')">Home</button>
+  <button onclick="show('scan')">Scan</button>
+  <button onclick="show('earn')">Earn</button>
+  <button onclick="show('profile')">Profile</button>
+</div>
+
+<script>
+let balance = Number(localStorage.getItem("balance")) || 200000000;
+let name = localStorage.getItem("name") || "User";
+let pin = localStorage.getItem("pin");
+let receiver="";
+let scanner=null;
+
+updateUI();
+generateQR();
+
+function show(id){
+ document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
+ document.getElementById(id).classList.add("active");
+}
+
+function formatINR(num){
+ return num.toLocaleString("en-IN");
+}
+
+function updateUI(){
+ balanceText.innerText = formatINR(balance);
+ userName.innerText = name;
+}
+
+function earn(){
+ balance+=1000000;
+ localStorage.setItem("balance",balance);
+ updateUI();
+ alert("Earned ₹10,00,000");
+}
+
+function saveName(){
+ if(newName.value){
+  name=newName.value;
+  localStorage.setItem("name",name);
+  updateUI();
+  generateQR();
+ }
+}
+
+function setPin(){
+ if(pin){alert("PIN already set");return;}
+ if(newPin.value.length>=4){
+  pin=newPin.value;
+  localStorage.setItem("pin",pin);
+  alert("PIN saved");
+ }
+}
+
+function generateQR(){
+ myqr.innerHTML="";
+ new QRCode("myqr",{text:"FAKEMONEY_USER:"+name,width:160,height:160});
+}
+
+function openCamera(){
+ payBox.style.display="none";
+ reader.innerHTML="";
+ if(scanner){scanner.stop();}
+ scanner=new Html5Qrcode("reader");
+ scanner.start({facingMode:"environment"},{fps:15,qrbox:200},msg=>{
+  if(msg.startsWith("FAKEMONEY_USER:")){
+   receiver=msg.split(":")[1];
+   receiverName.innerText=receiver;
+   payBox.style.display="block";
+   scanner.stop();
+  }
+ }).catch(()=>alert("Camera needs permission or HTTPS"));
+}
+
+function pay(){
+ if(!pin){alert("Set PIN first");return;}
+ if(pinInput.value!==pin){alert("Wrong PIN");return;}
+ let amt=Number(amount.value);
+ if(amt>0 && amt<=balance){
+  balance-=amt;
+  localStorage.setItem("balance",balance);
+  updateUI();
+  homeMsg.innerHTML=`<div class="msg">Sent ₹${formatINR(amt)} to ${receiver}</div>`;
+  alert(receiver+" received ₹"+formatINR(amt));
+  show("home");
+ }
+}
+</script>
+
+</body>
+</html>
